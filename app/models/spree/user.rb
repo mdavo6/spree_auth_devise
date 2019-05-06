@@ -27,6 +27,15 @@ module Spree
       has_spree_role?('admin')
     end
 
+    def associate_address!(order)
+      self.bill_address ||= order.bill_address
+      self.ship_address ||= order.ship_address
+
+      changes = slice(:bill_address_id, :ship_address_id)
+
+      self.class.unscoped.where(id: self).update_all(changes)
+    end
+
     protected
       def password_required?
         !persisted? || password.present? || password_confirmation.present?
