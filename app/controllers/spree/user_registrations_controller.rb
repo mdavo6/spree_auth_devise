@@ -11,6 +11,7 @@ class Spree::UserRegistrationsController < Devise::RegistrationsController
   end
 
   before_action :check_permissions, only: [:edit, :update]
+  before_action :set_current_order
   skip_before_action :require_no_authentication
 
   # GET /resource/sign_up
@@ -29,7 +30,7 @@ class Spree::UserRegistrationsController < Devise::RegistrationsController
         set_flash_message :notice, :signed_up
         sign_up(resource_name, resource)
         session[:spree_user_signup] = true
-        respond_with resource, location: after_sign_up_path_for(resource)
+        redirect_to_checkout_or_account_path(resource)
       else
         set_flash_message :notice, :"signed_up_but_#{resource.inactive_message}"
         expire_data_after_sign_in!
@@ -75,9 +76,34 @@ class Spree::UserRegistrationsController < Devise::RegistrationsController
     'devise.user_registrations'
   end
 
+  def after_sign_up_path_for(resource)
+    after_sign_in_redirect(resource) if is_navigational_format?
+  end
+
+  def after_inactive_sign_up_path_for(resource)
+    scope = Devise::Mapping.find_scope!(resource)
+    router_name = Devise.mappings[scope].router_name
+    context = router_name ? send(router_name) : self
+    context.respond_to?(:login_path) ? context.login_path : "/login"
+  end
+
   private
 
   def spree_user_params
     params.require(:spree_user).permit(Spree::PermittedAttributes.user_attributes)
+  end
+
+  def after_sign_in_redirect(resource_or_scope)
+    stored_location_for(resource_or_scope) || account_path
+  end
+
+  def redirect_to_checkout_or_account_path(resource)
+    resource_path = after_sign_up_path_for(resource)
+
+    if resource_path == spree.checkout_state_path(:address)
+      respond_with resource, location: spree.checkout_state_path(:address)
+    else
+      respond_with resource, location: spree.account_path
+    end
   end
 end

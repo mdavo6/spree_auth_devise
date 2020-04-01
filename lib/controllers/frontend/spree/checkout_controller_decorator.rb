@@ -1,10 +1,12 @@
 require 'spree/core/validators/email' if Spree.version.to_f < 3.5
-Spree::CheckoutController.class_eval do
-  before_action :check_authorization
-  before_action :check_registration, except: [:registration, :update_registration]
+module Spree::CheckoutControllerDecorator
+  def self.prepended(base)
+    base.before_action :check_authorization
+    base.before_action :check_registration, except: [:registration, :update_registration]
+  end
 
   def registration
-    @user = Spree::User.new
+    @user = Spree.user_class.new
   end
 
   def update_registration
@@ -12,7 +14,7 @@ Spree::CheckoutController.class_eval do
       redirect_to spree.checkout_state_path(:address)
     else
       flash[:error] = t(:email_is_invalid, scope: [:errors, :messages])
-      @user = Spree::User.new
+      @user = Spree.user_class.new
       render 'registration'
     end
   end
@@ -39,3 +41,4 @@ Spree::CheckoutController.class_eval do
     redirect_to spree.checkout_registration_path
   end
 end
+Spree::CheckoutController.prepend(Spree::CheckoutControllerDecorator)

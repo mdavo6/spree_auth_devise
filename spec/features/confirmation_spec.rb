@@ -8,8 +8,6 @@ RSpec.feature 'Confirmation', type: :feature, reload_user: true do
 
   after(:each) { set_confirmable_option(false) }
 
-  let!(:store) { create(:store) }
-
   background do
     ActionMailer::Base.default_url_options[:host] = 'http://example.com'
   end
@@ -20,9 +18,9 @@ RSpec.feature 'Confirmation', type: :feature, reload_user: true do
     fill_in 'Email', with: 'email@person.com'
     fill_in 'Password', with: 'password'
     fill_in 'Password Confirmation', with: 'password'
-    click_button 'Create'
+    click_button 'Sign Up'
 
-    expect(page).to have_text 'You have signed up successfully.'
-    expect(Spree::User.last.confirmed?).to be(false)
+    expect(page).to have_text I18n.t('devise.user_registrations.signed_up_but_unconfirmed')
+    expect(Spree.user_class.last.confirmed?).to be(false)
   end
 end
